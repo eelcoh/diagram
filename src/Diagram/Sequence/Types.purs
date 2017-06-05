@@ -13,7 +13,7 @@ module Diagram.Sequence.Types
   , Layer
   , Direction(..)
   , Session
-  , Head
+  , Head (..)
   , Actor
   , Vertical
   ) where
@@ -73,8 +73,8 @@ type LifelineDetails =
 type Vertical =
   { start :: Y
   , end :: Y
-  , arrowIn :: Y
-  , arrowOut :: Y
+  , arrowInStart :: Y
+  , arrowOutEnd :: Y
   }
 
 

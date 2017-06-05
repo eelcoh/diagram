@@ -9,7 +9,7 @@ import Data.Array (cons, head, last, uncons)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Diagram.Sequence.Component (findLifelineByComponentId)
-import Diagram.Sequence.Types (Diagram, Direction(LeftToRight, ToSelf, RightToLeft), Lifeline, Start, Vertical, Y(Y))
+import Diagram.Sequence.Types (Diagram, Direction(LeftToRight, ToSelf, RightToLeft), Lifeline, Start, Vertical, Y(Y), Head(Open, Closed))
 import Diagram.Types.Attribute (Attribute)
 import Diagram.Types.Sequence (ComponentId, Step(Start, Asynchronous, Synchronous), Steps)
 import Elm.Pipe ((|>))
@@ -18,28 +18,63 @@ import Prelude (Ordering(LT, EQ, GT), add, compare, flip, (+), map)
 
 -- types used in this module only
 data SessionPassOne =
-  SessionPassOne Lifeline Vertical (Array SessionPassOne)
+  SessionPassOne Lifeline Vertical Arrows (Array SessionPassOne)
+
+type ArrowMeta =
+  { incoming :: Maybe Head
+  , outgoing :: Boolean
+  }
+
+type Arrows =
+  { incoming :: Maybe ArrowIn
+  , outgoing :: Maybe ArrowOut
+  }
+
+data ArrowIn
+  = Incoming Direction Head
+
+data ArrowOut
+  = Outgoing Direction
 
 -- type for convenience
 data Tuple4 a b c d
   = Tuple4 a b c d
 
+
+-- Pass one: get all vertical dimensions right
 sessionPassOne :: Start -> Maybe Lifeline -> Diagram -> Step -> Maybe SessionPassOne
 sessionPassOne start mLifelineFrom diagram step =
   case step of
     Synchronous componentId attributes steps ->
-      addSession diagram mLifelineFrom componentId attributes steps start true
+      let
+        arrows =
+          { incoming : (Just Closed), outgoing : true }
+      in
+        addSession diagram mLifelineFrom componentId attributes steps start arrows
 
     Asynchronous componentId attributes steps ->
-      addSession diagram mLifelineFrom componentId attributes steps start false
+      let
+        arrows =
+          { incoming : (Just Open), outgoing : false }
+      in
+        addSession diagram mLifelineFrom componentId attributes steps start arrows
 
     Start (mSequenceId) componentId attributes steps ->
-      addSession diagram mLifelineFrom componentId attributes steps start false
+      let
+        arrows =
+          { incoming : Nothing, outgoing : false }
+      in
+        addSession diagram mLifelineFrom componentId attributes steps start arrows
 
 
-addSession :: Diagram -> Maybe Lifeline -> ComponentId -> Array Attribute -> Steps -> Start -> Boolean -> Maybe SessionPassOne
-addSession diagram mLifelineFrom componentId attrs steps start withReturn =
+
+
+addSession :: Diagram -> Maybe Lifeline -> ComponentId -> Array Attribute -> Steps -> Start -> ArrowMeta -> Maybe SessionPassOne
+addSession diagram mLifelineFrom componentId attrs steps start arrowMeta =
   let
+    withReturn
+      = arrowMeta.outgoing
+
     mFirstStep =
       head steps
 
@@ -165,33 +200,49 @@ addSession diagram mLifelineFrom componentId attrs steps start withReturn =
       sessionsPassOne (start + addBefore + arrowInExtra) mLifelineFrom diagram steps
 
     mLastArrowOut =
-      map (\(SessionPassOne _ vertical _) -> vertical.arrowOut) (last nextSessions)
+      map (\(SessionPassOne _ vertical _ _) -> vertical.arrowOutEnd) (last nextSessions)
 
     mLastEnd =
-      map (\(SessionPassOne _ vertical _) -> vertical.end) (last nextSessions)
+      map (\(SessionPassOne _ vertical _ _) -> vertical.end) (last nextSessions)
 
-    arrowIn =
+    arrowInStart =
       start
 
     sessionStart =
-      arrowIn + arrowInExtra
+      arrowInStart + arrowInExtra
 
     sessionEnd =
       fromMaybe (sessionStart + Y 1) mLastEnd
         |> add addLast
 
-    arrowOut =
+    arrowOutEnd =
       sessionEnd + arrowOutExtra
 
     v =
       { start : sessionStart
       , end : sessionEnd
-      , arrowIn : arrowIn
-      , arrowOut : arrowOut
+      , arrowInStart : arrowInStart
+      , arrowOutEnd : arrowOutEnd
       }
 
+    mkArrowIn direction hd =
+      Incoming direction hd
+
+    arrowIn =
+      lift2 mkArrowIn mDirectionIn arrowMeta.incoming
+
+    arrowOut =
+      if arrowMeta.outgoing
+        then
+          map Outgoing mDirectionLast
+        else
+          Nothing
+
+    arrows =
+      { incoming : arrowIn, outgoing : arrowOut }
+
   in
-    map (\l -> SessionPassOne l v nextSessions) mLifeline
+    map (\l -> SessionPassOne l v arrows nextSessions) mLifeline
 
 
 
@@ -210,10 +261,10 @@ sessionsPassOne start mLifelineFrom diagram steps =
         case first of
           Nothing ->
             []
-          Just session @ SessionPassOne lifeline vertical sessions ->
+          Just session @ SessionPassOne lifeline vertical arrows sessions ->
             let
               newStart =
-                vertical.arrowOut + (Y 1)
+                vertical.arrowOutEnd + (Y 1)
             in
                 sessionsPassOne newStart mLifelineFrom diagram rest
                 |> cons session
