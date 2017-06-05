@@ -1,0 +1,36 @@
+{
+  "name": "diagram",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^3.0.0",
+    "purescript-console": "^3.0.0",
+    "purescript-parsing": "^4.2.1",
+    "purescript-colors": "^3.0.0",
+    "purescript-lazy": "^3.0.0"
+  },
+  "devDependencies": {
+    "purescript-assert": "^3.0.0",
+    "purescript-psci-support": "^3.0.0",
+    "purescript-console": "^3.0.0"
+  },
+  "authors": [
+    "eelcoh <ehoekema@gmail.com>"
+  ],
+  "description": "Sequence Diagram",
+  "main": "./src/Main.purs",
+  "keywords": [
+    "Sequence",
+    "Diagram",
+    "Component",
+    "Architecture"
+  ],
+  "license": "MIT",
+  "homepage": ""
+}
