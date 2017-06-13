@@ -10,12 +10,15 @@ module Diagram.Sequence.Types
   , Start
   , End
   , Y(Y)
+  , X(X)
   , Layer
+  , LayerRegister
   , Direction(..)
-  , Session
+  , Session(..)
   , Head (..)
   , Actor
   , Vertical
+  , Horizontal
   ) where
 
 
@@ -34,7 +37,7 @@ type Diagram =
 
 type Component =
   { component :: S.Component
-  , layers :: List Layer
+  , layers :: Array LayerRegister
   }
 
 
@@ -53,12 +56,16 @@ type SessionDetails =
   }
 
 type ArrowDetails =
-  { start :: Y
-  , startLayer :: Int
-  , end :: Y
-  , endLayer :: Int
-  , head :: Head
+  { start :: Coordinate
+  , end :: Coordinate
+  , arrowType :: ArrowType
   , direction :: Direction
+  }
+
+type Coordinate =
+  { lifeline :: Lifeline
+  , layer :: Layer
+  , y :: Y
   }
 
 type ComponentDetails =
@@ -77,7 +84,10 @@ type Vertical =
   , arrowOutEnd :: Y
   }
 
-
+type Horizontal =
+  { lifeline :: Lifeline
+  , layer :: X
+  }
 
 data Actor
   = Person
@@ -87,19 +97,43 @@ data Head
   = Open
   | Closed
 
+data ArrowType
+  = SyncArrow
+  | AsyncArrow
+  | ReturnArrow
+
 data Direction
   = LeftToRight
   | RightToLeft
   | ToSelf
 
 
-data Layer
-    = Layer Int (List Session)
+newtype LayerRegister
+  = LayerRegister (Array Session)
 
 
-newtype Session =
-    Session (Tuple Start End)
+newtype Session
+  = Session {start :: Y, end :: Y}
 
+
+type Layer
+  = X
+
+newtype X
+  = X Int
+
+instance semiringX :: Semiring X where
+  one =
+    X 1
+
+  mul (X x1) (X x2) =
+    X (x1 * x2)
+
+  zero =
+    X 0
+
+  add (X x1) (X x2) =
+    X (x1 + x2)
 
 type Start
   = Y
@@ -109,6 +143,8 @@ type End
 
 newtype Y =
     Y Int
+
+
 
 instance semiringY :: Semiring Y where
   one =

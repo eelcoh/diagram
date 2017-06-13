@@ -22,7 +22,7 @@ import Data.Maybe (Maybe(..))
 
 import Diagram.Parser (parseAttribute, parseAttributes, parseComponents, parseSequence)
 import Diagram.Types.Attribute (Attribute(..))
-import Diagram.Types.Sequence (Component, Step, component, start, sync, async)
+import Diagram.Types.Sequence (Component, Step, Identifier(..), component, start, sync, async)
 
 tokenParser :: TokenParser
 tokenParser = makeTokenParser haskellDef
@@ -96,11 +96,11 @@ sequence1b = """Sequence aaa []
 
 sequence1Res :: Step
 sequence1Res =
-  (start Nothing "aaa" Nil
+  (start Nothing (Identifier "aaa") Nil
     ( fromFoldable
-      [ sync "abc" Nil Nil
-      , async "def" (fromFoldable [ ( TextColor (rgb 51 68 85) )]) Nil
-      , sync "ghi" (fromFoldable [ ( Caption "ghi" ) ]) Nil
+      [ sync (Identifier "abc") Nil Nil
+      , async (Identifier "def") (fromFoldable [ ( TextColor (rgb 51 68 85) )]) Nil
+      , sync (Identifier "ghi") (fromFoldable [ ( Caption "ghi" ) ]) Nil
       ]
     )
   )
